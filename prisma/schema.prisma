@@ -1,0 +1,31 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id         String    @id @default(cuid())
+  telegramId BigInt    @unique
+  name       String
+  createdAt  DateTime  @default(now())
+  expenses   Expense[]
+}
+
+model Expense {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Amount in kopecks (e.g. 150050 = 1500.50 RUB)
+  amount    Int
+  category  String
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([category])
+  @@index([userId, createdAt])
+}

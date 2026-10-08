@@ -1,0 +1,36 @@
+services:
+  # Профиль deploy — бот в контейнере, как на сервере.
+  # Без профиля `docker compose up` поднимает только Postgres для npm run dev.
+  bot:
+    profiles: ["deploy"]
+    build: .
+    restart: unless-stopped
+    init: true
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://budget:budget@postgres:5432/budget_wallet?schema=public
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: budget
+      POSTGRES_PASSWORD: budget
+      POSTGRES_DB: budget_wallet
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U budget -d budget_wallet"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  postgres_data:
