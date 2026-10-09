@@ -1,11 +1,13 @@
 name: Deploy
 
-# Ручной запуск, пока нет сервера. После настройки секретов можно
-# добавить автодеплой на push в master:
-#   push:
-#     branches: [master]
 on:
+  push:
+    branches: [master]
   workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -39,8 +41,15 @@ jobs:
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
         run: |
           mkdir -p ~/.ssh
-          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          # Секрет, вставленный из Windows, часто приходит с CR. OpenSSH тогда
+          # пишет "error in libcrypto" и ключ не принимает.
+          printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
+          if ! ssh-keygen -y -f ~/.ssh/deploy_key >/dev/null 2>~/key_err; then
+            echo "::error::DEPLOY_SSH_KEY не читается. В секрет нужен приватный ключ целиком, от строки BEGIN до END, без кавычек."
+            cat ~/key_err
+            exit 1
+          fi
           remote_path=$(printf '%q' "$DEPLOY_PATH")
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new \
             "$DEPLOY_USER@$DEPLOY_HOST" \
