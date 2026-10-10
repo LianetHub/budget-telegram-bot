@@ -87,6 +87,14 @@ export function deleteListKeyboard(items: { id: string; label: string }[]) {
   return Markup.inlineKeyboard(rows);
 }
 
+export const RETRY_PREFIX = "rt:";
+
+export function retryKeyboard(id: string) {
+  return Markup.inlineKeyboard([
+    [Markup.button.callback("🔄 Повторить", `${RETRY_PREFIX}${id}`)],
+  ]);
+}
+
 export function deleteConfirmKeyboard(id: string) {
   return Markup.inlineKeyboard([
     [

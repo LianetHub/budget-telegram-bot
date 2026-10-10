@@ -1,7 +1,13 @@
 import { Telegraf } from "telegraf";
 import { config } from "./config.js";
+import { createTelegramAgent } from "./bot/telegramAgent.js";
+import { installCallTimeouts } from "./bot/telegramCalls.js";
 import { ERROR_TEXT } from "./bot/copy.js";
+import { retryKeyboard } from "./bot/keyboards.js";
+import { rememberFailedUpdate } from "./bot/retry.js";
 import { authMiddleware } from "./bot/middleware/auth.js";
+import { dedupeMiddleware } from "./bot/middleware/dedupe.js";
+import { isRetryClick, registerRetryHandlers } from "./bot/handlers/retry.js";
 import { registerStartHandlers } from "./bot/handlers/start.js";
 import { registerExpenseHandlers } from "./bot/handlers/expense.js";
 import { registerStatsHandlers } from "./bot/handlers/stats.js";
@@ -14,21 +20,33 @@ const BOT_DESCRIPTION =
 const BOT_ABOUT =
   "Семейные расходы без таблиц: запиши трату за 5 секунд и смотри, куда уходят деньги.";
 
-const bot = new Telegraf(config.botToken);
+installCallTimeouts();
+
+const bot = new Telegraf(config.botToken, {
+  telegram: { agent: createTelegramAgent() },
+});
 
 bot.catch(async (error, ctx) => {
   console.error(`Bot error for update ${ctx.update.update_id}:`, error);
   if (!ctx.chat) return;
   try {
-    await ctx.reply(ERROR_TEXT);
+    // A failed retry click has nothing left to repeat, so it gets no button.
+    if (isRetryClick(ctx.update)) {
+      await ctx.reply(ERROR_TEXT);
+      return;
+    }
+    const retryId = rememberFailedUpdate(ctx.update);
+    await ctx.reply(ERROR_TEXT, retryKeyboard(retryId));
   } catch (replyError) {
     console.error("Failed to report the error to the user:", replyError);
   }
 });
 
+bot.use(dedupeMiddleware);
 bot.use(authMiddleware);
 
 registerStartHandlers(bot);
+registerRetryHandlers(bot);
 registerStatsHandlers(bot);
 registerDeleteHandlers(bot);
 registerExpenseHandlers(bot);

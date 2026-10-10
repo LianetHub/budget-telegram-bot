@@ -113,7 +113,7 @@ export function formatClock(date: Date, timeZone: string): string {
 }
 
 export function formatShortStamp(date: Date, timeZone: string): string {
-  return formatInTimeZone(date, timeZone, "dd.MM.yy HH:mm");
+  return formatInTimeZone(date, timeZone, "dd.MM HH:mm");
 }
 
 export function formatLongStamp(date: Date, timeZone: string): string {

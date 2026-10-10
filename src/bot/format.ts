@@ -11,6 +11,25 @@ export function expenseSummary(expense: {
   return `${expense.category} — ${formatAmount(expense.amount)}${note}`;
 }
 
+export const BUTTON_LABEL_LIMIT = 60;
+
+/**
+ * Button text for one expense: category and amount first, then the note, then
+ * the date. Telegram cuts long labels from the end, so the date goes last and
+ * the note is the first thing to shrink.
+ */
+export function expenseButtonLabel(
+  expense: { category: string; amount: number; note: string | null },
+  stamp: string,
+  max = BUTTON_LABEL_LIMIT,
+): string {
+  const core = `${expense.category} · ${formatAmount(expense.amount)}`;
+  const tail = ` · ${stamp}`;
+  const noteSpace = max - core.length - tail.length - " · ".length;
+  if (!expense.note || noteSpace < 4) return clip(`${core}${tail}`, max);
+  return `${core} · ${clip(expense.note, noteSpace)}${tail}`;
+}
+
 export function clip(text: string, max: number): string {
   if (text.length <= max) return text;
   return `${text.slice(0, max - 1)}…`;

@@ -25,6 +25,7 @@ import { presentMain } from "../presentMain.js";
 import { safeAnswerCbQuery } from "../safeAnswerCbQuery.js";
 import { callbackMessage, dismissPending, showScreen } from "../screen.js";
 import { getPending, setPending } from "../session.js";
+import { once } from "../updateLedger.js";
 
 function savedLead(
   expense: {
@@ -47,13 +48,17 @@ async function saveExpense(
   input: { category: string; amount: number; note: string | null },
 ) {
   if (!ctx.from) return;
-  const expense = await createExpense({
-    telegramId: ctx.from.id,
-    name: displayName(ctx),
-    category: input.category,
-    amount: input.amount,
-    note: input.note,
-  });
+  const from = ctx.from;
+  // A retry of this update shows the saved expense again instead of adding one more.
+  const expense = await once(ctx.update.update_id, "save", () =>
+    createExpense({
+      telegramId: from.id,
+      name: displayName(ctx),
+      category: input.category,
+      amount: input.amount,
+      note: input.note,
+    }),
+  );
   const today = await getRangeTotals(getTodayRange());
   await presentMain(ctx, savedLead(expense, today));
 }
@@ -77,7 +82,11 @@ export function registerExpenseHandlers(bot: Telegraf<Context>) {
       return;
     }
 
-    const pending = getPending(ctx.from.id);
+    const userId = ctx.from.id;
+    // Remembered per update: a retry must see the same pending input the first run saw.
+    const pending = once(ctx.update.update_id, "pending", () =>
+      getPending(userId),
+    );
     if (pending?.kind === "pick") {
       const choice = pending;
       await dismissPending(ctx, ctx.from.id);
@@ -103,7 +112,10 @@ export function registerExpenseHandlers(bot: Telegraf<Context>) {
     const text = ctx.message.text;
     if (text.startsWith("/")) return;
 
-    const pending = getPending(ctx.from.id);
+    const userId = ctx.from.id;
+    const pending = once(ctx.update.update_id, "pending", () =>
+      getPending(userId),
+    );
     if (pending?.kind === "amount") {
       const category = getCategoryBySlug(pending.categorySlug);
       const parsed = parseAmountInput(text);

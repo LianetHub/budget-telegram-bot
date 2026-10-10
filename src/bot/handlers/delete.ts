@@ -14,7 +14,11 @@ import {
   NO_OWN_EXPENSES,
   deleteConfirmText,
 } from "../copy.js";
-import { expenseSummary } from "../format.js";
+import {
+  BUTTON_LABEL_LIMIT,
+  expenseButtonLabel,
+  expenseSummary,
+} from "../format.js";
 import {
   CALLBACK,
   RECENT_LIMIT,
@@ -24,6 +28,7 @@ import {
 import { presentMain } from "../presentMain.js";
 import { safeAnswerCbQuery } from "../safeAnswerCbQuery.js";
 import { dismissPending, showScreen } from "../screen.js";
+import { once } from "../updateLedger.js";
 
 function isExpenseId(id: string): boolean {
   return /^[a-z0-9]+$/u.test(id);
@@ -45,16 +50,20 @@ async function showDeleteList(ctx: Context) {
 
   const lines = expenses.map((expense, index) => {
     const stamp = formatLongStamp(expense.createdAt, config.timezone);
-    return `${index + 1}. ${stamp} — ${expenseSummary(expense)}`;
+    return `${index + 1}. ${expenseSummary(expense)} · ${stamp}`;
   });
   await showScreen(
     ctx,
     [DELETE_PROMPT, "", ...lines].join("\n"),
     deleteListKeyboard(
-      expenses.map((expense, index) => ({
-        id: expense.id,
-        label: `${index + 1}. ${formatShortStamp(expense.createdAt, config.timezone)} · ${expense.category}`,
-      })),
+      expenses.map((expense, index) => {
+        const prefix = `${index + 1}. `;
+        const stamp = formatShortStamp(expense.createdAt, config.timezone);
+        return {
+          id: expense.id,
+          label: `${prefix}${expenseButtonLabel(expense, stamp, BUTTON_LABEL_LIMIT - prefix.length)}`,
+        };
+      }),
     ),
   );
 }
@@ -87,8 +96,8 @@ export function registerDeleteHandlers(bot: Telegraf<Context>) {
       ctx,
       deleteConfirmText(
         [
-          stamp,
           expenseSummary(expense),
+          stamp,
           `Добавил(а): ${expense.user.name}`,
         ].join("\n"),
       ),
@@ -102,7 +111,11 @@ export function registerDeleteHandlers(bot: Telegraf<Context>) {
     const id = ctx.match[1];
     if (!ctx.from || !id || !isExpenseId(id)) return;
 
-    const result = await deleteOwnExpense(id, ctx.from.id);
+    const userId = ctx.from.id;
+    // A retry of this update reports the first result instead of "already gone".
+    const result = await once(ctx.update.update_id, "delete", () =>
+      deleteOwnExpense(id, userId),
+    );
     const lead =
       result.status === "deleted"
         ? `🗑 Убрал: ${expenseSummary(result.expense)}`

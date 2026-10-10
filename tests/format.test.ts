@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  BUTTON_LABEL_LIMIT,
+  expenseButtonLabel,
   expenseSummary,
   fitLines,
   plural,
@@ -57,5 +59,53 @@ describe("fitLines", () => {
     expect(fitLines("Заголовок", ["одна"], "Итог")).toBe(
       "Заголовок\n\nодна\n\nИтог",
     );
+  });
+});
+
+describe("expenseButtonLabel", () => {
+  const stamp = "09.10 18:20";
+
+  it("starts with the category and the amount, then the note and the date", () => {
+    expect(
+      expenseButtonLabel(
+        { category: "Продукты", amount: 150_000, note: "пятерочка" },
+        stamp,
+      ),
+    ).toBe(`Продукты · ${formatAmount(150_000)} · пятерочка · ${stamp}`);
+  });
+
+  it("skips the note when there is none", () => {
+    expect(
+      expenseButtonLabel(
+        { category: "Такси", amount: 50_000, note: null },
+        stamp,
+      ),
+    ).toBe(`Такси · ${formatAmount(50_000)} · ${stamp}`);
+  });
+
+  it("shortens the note first when the label does not fit", () => {
+    const label = expenseButtonLabel(
+      {
+        category: "Развлечения",
+        amount: 280_000,
+        note: "очень длинное пояснение про комиксы и подарки",
+      },
+      stamp,
+    );
+
+    expect(label.length).toBeLessThanOrEqual(BUTTON_LABEL_LIMIT);
+    expect(label.startsWith(`Развлечения · ${formatAmount(280_000)} · `)).toBe(
+      true,
+    );
+    expect(label).toContain("…");
+    expect(label.endsWith(stamp)).toBe(true);
+  });
+
+  it("never exceeds the limit", () => {
+    const label = expenseButtonLabel(
+      { category: "К".repeat(70), amount: 100, note: "заметка" },
+      stamp,
+    );
+    expect(label.length).toBeLessThanOrEqual(BUTTON_LABEL_LIMIT);
   });
 });
