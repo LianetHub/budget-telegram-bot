@@ -1,4 +1,5 @@
 import { Telegram, TelegramError } from "telegraf";
+import { log } from "./logger.js";
 
 /** Short calls (answer, edit, send) must not hang for minutes. */
 export const CALL_TIMEOUT_MS = 15_000;
@@ -59,11 +60,27 @@ export async function callWithRetry<T>(
   const maxAttempts = options.maxAttempts ?? MAX_ATTEMPTS;
 
   for (let number = 1; ; number += 1) {
+    const started = Date.now();
     try {
-      return await attempt(AbortSignal.timeout(timeoutMs));
+      const result = await attempt(AbortSignal.timeout(timeoutMs));
+      if (number > 1) {
+        log("telegram.retry_ok", {
+          method,
+          attempt: number,
+          durationMs: Date.now() - started,
+        });
+      }
+      return result;
     } catch (error) {
+      log("telegram.call_failed", {
+        method,
+        attempt: number,
+        maxAttempts,
+        durationMs: Date.now() - started,
+        error: errorLabel(error),
+        willRetry: number < maxAttempts && canRepeat(method, error),
+      });
       if (number >= maxAttempts || !canRepeat(method, error)) throw error;
-      console.warn(`Telegram ${method} failed, repeating:`, errorLabel(error));
     }
   }
 }

@@ -15,6 +15,8 @@ export const CALLBACK = {
   CATEGORIES: "st:cats",
   PEOPLE: "st:people",
   DELETE_NO: "dn",
+  DUP_YES: "cd:y",
+  DUP_NO: "cd:n",
 } as const;
 
 export const RECENT_LIMIT = 6;
@@ -102,4 +104,23 @@ export function deleteConfirmKeyboard(id: string) {
       Markup.button.callback("Нет", CALLBACK.DELETE_NO),
     ],
   ]);
+}
+
+export function dupConfirmKeyboard() {
+  return Markup.inlineKeyboard([
+    [
+      Markup.button.callback("Да, добавить", CALLBACK.DUP_YES),
+      Markup.button.callback("Нет", CALLBACK.DUP_NO),
+    ],
+  ]);
+}
+
+export function categoryStatsKeyboard(
+  categories: { slug: string; label: string }[],
+) {
+  const rows = categories.map((category) => [
+    Markup.button.callback(clip(category.label, 60), `st:cat:${category.slug}`),
+  ]);
+  rows.push([Markup.button.callback("← Назад", CALLBACK.STATS)]);
+  return Markup.inlineKeyboard(rows);
 }

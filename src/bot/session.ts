@@ -12,6 +12,12 @@ export type Pending =
       kind: "pick";
       amount: number;
       note: string;
+    } & MessageRef)
+  | ({
+      kind: "confirmDup";
+      category: string;
+      amount: number;
+      note: string | null;
     } & MessageRef);
 
 export const PENDING_TTL_MS = 15 * 60 * 1000;

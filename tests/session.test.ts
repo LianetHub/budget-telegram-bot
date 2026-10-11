@@ -20,4 +20,21 @@ describe("pending input", () => {
     vi.advanceTimersByTime(1);
     expect(getPending(1)).toBeUndefined();
   });
+
+  it("keeps a duplicate-confirm draft until cleared", () => {
+    setPending(1, {
+      kind: "confirmDup",
+      category: "Продукты",
+      amount: 150_000,
+      note: null,
+    });
+    expect(getPending(1)).toEqual({
+      kind: "confirmDup",
+      category: "Продукты",
+      amount: 150_000,
+      note: null,
+    });
+    clearPending(1);
+    expect(getPending(1)).toBeUndefined();
+  });
 });

@@ -2,8 +2,11 @@ import type { InlineKeyboardButton, Update } from "telegraf/types";
 import { beforeEach, describe, expect, it } from "vitest";
 import { mainScreen } from "../src/bot/copy.js";
 import {
+  CALLBACK,
   categoryKeyboard,
+  categoryStatsKeyboard,
   deleteConfirmKeyboard,
+  dupConfirmKeyboard,
   mainMenuKeyboard,
   retryKeyboard,
   statsMenuKeyboard,
@@ -69,6 +72,11 @@ describe("keyboards", () => {
       mainMenuKeyboard(true),
       mainMenuKeyboard(false),
       deleteConfirmKeyboard("c".repeat(25)),
+      dupConfirmKeyboard(),
+      categoryStatsKeyboard([
+        { slug: "products", label: "🛒 Продукты · 1 500 ₽" },
+        { slug: "taxi", label: "🚕 Такси · 400 ₽" },
+      ]),
       retryKeyboard(rememberFailedUpdate(textUpdate(1))),
     ];
     const data = keyboards.flatMap((keyboard) => callbackData(keyboard));
@@ -78,6 +86,22 @@ describe("keyboards", () => {
         CALLBACK_LIMIT,
       );
     }
+  });
+
+  it("asks before saving a similar family expense", () => {
+    expect(callbackData(dupConfirmKeyboard())).toEqual([
+      CALLBACK.DUP_YES,
+      CALLBACK.DUP_NO,
+    ]);
+  });
+
+  it("opens month category details from the categories screen", () => {
+    const data = callbackData(
+      categoryStatsKeyboard([
+        { slug: "products", label: "🛒 Продукты · 1 500 ₽" },
+      ]),
+    );
+    expect(data).toEqual(["st:cat:products", CALLBACK.STATS]);
   });
 });
 

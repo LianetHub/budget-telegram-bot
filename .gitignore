@@ -3,6 +3,7 @@ dist
 .env
 /src/generated/prisma
 *.log
+logs/
 .DS_Store
 
 /.vscode

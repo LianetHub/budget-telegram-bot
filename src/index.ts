@@ -7,11 +7,13 @@ import { retryKeyboard } from "./bot/keyboards.js";
 import { rememberFailedUpdate } from "./bot/retry.js";
 import { authMiddleware } from "./bot/middleware/auth.js";
 import { dedupeMiddleware } from "./bot/middleware/dedupe.js";
+import { loggingMiddleware } from "./bot/middleware/logging.js";
 import { isRetryClick, registerRetryHandlers } from "./bot/handlers/retry.js";
 import { registerStartHandlers } from "./bot/handlers/start.js";
 import { registerExpenseHandlers } from "./bot/handlers/expense.js";
 import { registerStatsHandlers } from "./bot/handlers/stats.js";
 import { registerDeleteHandlers } from "./bot/handlers/delete.js";
+import { log } from "./bot/logger.js";
 import { prisma } from "./db/prisma.js";
 
 const BOT_DESCRIPTION =
@@ -27,7 +29,13 @@ const bot = new Telegraf(config.botToken, {
 });
 
 bot.catch(async (error, ctx) => {
-  console.error(`Bot error for update ${ctx.update.update_id}:`, error);
+  log("bot.error", {
+    updateId: ctx.update.update_id,
+    telegramId: ctx.from?.id,
+    error: error instanceof Error ? error.message : String(error),
+    errorName: error instanceof Error ? error.name : undefined,
+    stack: error instanceof Error ? error.stack : undefined,
+  });
   if (!ctx.chat) return;
   try {
     // A failed retry click has nothing left to repeat, so it gets no button.
@@ -38,10 +46,15 @@ bot.catch(async (error, ctx) => {
     const retryId = rememberFailedUpdate(ctx.update);
     await ctx.reply(ERROR_TEXT, retryKeyboard(retryId));
   } catch (replyError) {
-    console.error("Failed to report the error to the user:", replyError);
+    log("bot.error_reply_failed", {
+      updateId: ctx.update.update_id,
+      error:
+        replyError instanceof Error ? replyError.message : String(replyError),
+    });
   }
 });
 
+bot.use(loggingMiddleware);
 bot.use(dedupeMiddleware);
 bot.use(authMiddleware);
 
@@ -54,6 +67,7 @@ registerExpenseHandlers(bot);
 const BOT_COMMANDS = [
   { command: "start", description: "Начать и показать возможности" },
   { command: "menu", description: "Главное меню" },
+  { command: "clearlogs", description: "Очистить файлы логов" },
 ];
 
 async function syncDescription(language?: string): Promise<void> {
@@ -94,12 +108,15 @@ async function publishProfileTexts(): Promise<void> {
 async function main() {
   await publishProfileTexts();
   await bot.launch(() => {
-    console.log("Budget Wallet bot is running");
+    log("bot.started", {});
   });
 }
 
 main().catch(async (error) => {
-  console.error("Failed to start bot:", error);
+  log("bot.start_failed", {
+    error: error instanceof Error ? error.message : String(error),
+    stack: error instanceof Error ? error.stack : undefined,
+  });
   await prisma.$disconnect();
   process.exit(1);
 });

@@ -318,6 +318,10 @@ export function getCategoryBySlug(slug: string): Category | undefined {
   return CATEGORIES.find((category) => category.slug === slug);
 }
 
+export function getCategoryByName(name: string): Category | undefined {
+  return CATEGORIES.find((category) => category.name === name);
+}
+
 type AliasHit = {
   category: Category;
   keyword: string;

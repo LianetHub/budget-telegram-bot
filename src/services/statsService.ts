@@ -128,6 +128,20 @@ export async function listExpenses(range: DateRange) {
   });
 }
 
+export async function listExpensesByCategory(
+  range: DateRange,
+  category: string,
+) {
+  return prisma.expense.findMany({
+    where: {
+      category,
+      createdAt: { gte: range.from, lt: range.to },
+    },
+    orderBy: { createdAt: "asc" },
+    include: expenseWithUser,
+  });
+}
+
 export async function listMonthSummaries(): Promise<MonthSummary[]> {
   const rows = await prisma.expense.findMany({
     select: { createdAt: true, amount: true },

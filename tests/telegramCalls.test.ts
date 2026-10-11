@@ -1,11 +1,33 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { TelegramError } from "telegraf";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   callWithRetry,
   MAX_ATTEMPTS,
   canRepeat,
   isConnectFailure,
 } from "../src/bot/telegramCalls.js";
+
+const previousLogDir = process.env.BUDGET_LOG_DIR;
+let tempLogDir: string | undefined;
+
+beforeEach(() => {
+  tempLogDir = fs.mkdtempSync(path.join(os.tmpdir(), "budget-tg-logs-"));
+  process.env.BUDGET_LOG_DIR = tempLogDir;
+  vi.spyOn(console, "log").mockImplementation(() => undefined);
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  if (previousLogDir === undefined) delete process.env.BUDGET_LOG_DIR;
+  else process.env.BUDGET_LOG_DIR = previousLogDir;
+  if (tempLogDir && fs.existsSync(tempLogDir)) {
+    fs.rmSync(tempLogDir, { recursive: true, force: true });
+  }
+  tempLogDir = undefined;
+});
 
 function fetchError(code: string, sysCall?: string): Error {
   const error = new Error("request failed") as Error & {

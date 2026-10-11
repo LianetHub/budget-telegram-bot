@@ -25,6 +25,9 @@ function allTexts(): string[] {
     copy.accessDeniedText(undefined),
     copy.unknownCategoryPrompt("штука", "100 ₽"),
     copy.deleteConfirmText("детали"),
+    copy.duplicateConfirmText("детали"),
+    copy.LOGS_CLEARED,
+    copy.LOGS_EMPTY,
   ];
 }
 

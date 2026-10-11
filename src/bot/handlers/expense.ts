@@ -1,9 +1,14 @@
 import type { Context, Telegraf } from "telegraf";
+import { config } from "../../config.js";
 import {
   getCategoryBySlug,
   resolveCategory,
 } from "../../services/categories.js";
-import { createExpense } from "../../services/expenseService.js";
+import { formatClock } from "../../services/dates.js";
+import {
+  createExpense,
+  findSimilarExpenseToday,
+} from "../../services/expenseService.js";
 import {
   formatAmount,
   parseAmountInput,
@@ -16,11 +21,18 @@ import {
   STALE_BUTTON,
   amountHelp,
   amountPrompt,
+  duplicateConfirmText,
   unknownCategoryPrompt,
 } from "../copy.js";
 import { displayName } from "../displayName.js";
 import { expenseSummary, recordsCount } from "../format.js";
-import { CALLBACK, backKeyboard, categoryKeyboard } from "../keyboards.js";
+import {
+  CALLBACK,
+  backKeyboard,
+  categoryKeyboard,
+  dupConfirmKeyboard,
+} from "../keyboards.js";
+import { log } from "../logger.js";
 import { presentMain } from "../presentMain.js";
 import { safeAnswerCbQuery } from "../safeAnswerCbQuery.js";
 import { callbackMessage, dismissPending, showScreen } from "../screen.js";
@@ -43,13 +55,12 @@ function savedLead(
   ].join("\n");
 }
 
-async function saveExpense(
+async function persistExpense(
   ctx: Context,
   input: { category: string; amount: number; note: string | null },
 ) {
   if (!ctx.from) return;
   const from = ctx.from;
-  // A retry of this update shows the saved expense again instead of adding one more.
   const expense = await once(ctx.update.update_id, "save", () =>
     createExpense({
       telegramId: from.id,
@@ -59,8 +70,62 @@ async function saveExpense(
       note: input.note,
     }),
   );
+  log("expense.saved", {
+    updateId: ctx.update.update_id,
+    telegramId: from.id,
+    category: input.category,
+    amount: input.amount,
+    expenseId: expense.id,
+  });
   const today = await getRangeTotals(getTodayRange());
   await presentMain(ctx, savedLead(expense, today));
+}
+
+async function saveExpense(
+  ctx: Context,
+  input: { category: string; amount: number; note: string | null },
+  options: { skipDupCheck?: boolean } = {},
+) {
+  if (!ctx.from) return;
+  const from = ctx.from;
+
+  if (!options.skipDupCheck) {
+    const similar = await findSimilarExpenseToday({
+      category: input.category,
+      amount: input.amount,
+      excludeTelegramId: from.id,
+      range: getTodayRange(),
+    });
+    if (similar) {
+      log("expense.dup_prompt", {
+        updateId: ctx.update.update_id,
+        telegramId: from.id,
+        category: input.category,
+        amount: input.amount,
+        similarId: similar.id,
+        similarUser: similar.user.name,
+      });
+      const message = callbackMessage(ctx);
+      setPending(from.id, {
+        kind: "confirmDup",
+        category: input.category,
+        amount: input.amount,
+        note: input.note,
+        ...(message ?? {}),
+      });
+      const stamp = formatClock(similar.createdAt, config.timezone);
+      await showScreen(
+        ctx,
+        duplicateConfirmText(
+          `${expenseSummary(similar)} (${similar.user.name}, ${stamp})`,
+        ),
+        dupConfirmKeyboard(),
+      );
+      return;
+    }
+  }
+
+  await persistExpense(ctx, input);
 }
 
 export function registerExpenseHandlers(bot: Telegraf<Context>) {
@@ -106,6 +171,46 @@ export function registerExpenseHandlers(bot: Telegraf<Context>) {
       ...(message ?? {}),
     });
     await showScreen(ctx, amountPrompt(category), backKeyboard(CALLBACK.ADD));
+  });
+
+  bot.action(CALLBACK.DUP_YES, async (ctx) => {
+    await safeAnswerCbQuery(ctx);
+    if (!ctx.from) return;
+
+    const userId = ctx.from.id;
+    const pending = once(ctx.update.update_id, "pending", () =>
+      getPending(userId),
+    );
+    if (pending?.kind !== "confirmDup") {
+      await dismissPending(ctx, userId);
+      await presentMain(ctx, STALE_BUTTON);
+      return;
+    }
+
+    const draft = pending;
+    await dismissPending(ctx, userId);
+    log("expense.dup_confirm", {
+      updateId: ctx.update.update_id,
+      telegramId: userId,
+      category: draft.category,
+      amount: draft.amount,
+    });
+    await persistExpense(ctx, {
+      category: draft.category,
+      amount: draft.amount,
+      note: draft.note,
+    });
+  });
+
+  bot.action(CALLBACK.DUP_NO, async (ctx) => {
+    await safeAnswerCbQuery(ctx);
+    if (!ctx.from) return;
+    log("expense.dup_cancel", {
+      updateId: ctx.update.update_id,
+      telegramId: ctx.from.id,
+    });
+    await dismissPending(ctx, ctx.from.id);
+    await presentMain(ctx);
   });
 
   bot.on("text", async (ctx) => {

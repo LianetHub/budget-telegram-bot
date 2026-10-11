@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { resolveCategory } from "../src/services/categories.js";
+import {
+  getCategoryByName,
+  resolveCategory,
+} from "../src/services/categories.js";
 
 describe("resolveCategory", () => {
   it("keeps a category name without a note", () => {
@@ -36,5 +39,12 @@ describe("resolveCategory", () => {
     const resolved = resolveCategory("Продукты Хлеб Бородинский");
     expect(resolved?.category.name).toBe("Продукты");
     expect(resolved?.note).toBe("Хлеб Бородинский");
+  });
+});
+
+describe("getCategoryByName", () => {
+  it("maps a stored category name to its slug", () => {
+    expect(getCategoryByName("Продукты")?.slug).toBe("products");
+    expect(getCategoryByName("нет такой")).toBeUndefined();
   });
 });

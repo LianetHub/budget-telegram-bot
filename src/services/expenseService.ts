@@ -1,4 +1,5 @@
 import { prisma } from "../db/prisma.js";
+import type { DateRange } from "./dates.js";
 
 export async function upsertUser(telegramId: number, name: string) {
   return prisma.user.upsert({
@@ -36,6 +37,25 @@ export async function createExpense(input: {
       amount: input.amount,
       note: cleanNote(input.note),
     },
+    include: { user: true },
+  });
+}
+
+/** Same category + amount today from another family member. */
+export async function findSimilarExpenseToday(input: {
+  category: string;
+  amount: number;
+  excludeTelegramId: number;
+  range: DateRange;
+}) {
+  return prisma.expense.findFirst({
+    where: {
+      category: input.category,
+      amount: input.amount,
+      createdAt: { gte: input.range.from, lt: input.range.to },
+      user: { telegramId: { not: BigInt(input.excludeTelegramId) } },
+    },
+    orderBy: { createdAt: "desc" },
     include: { user: true },
   });
 }

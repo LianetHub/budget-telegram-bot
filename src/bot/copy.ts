@@ -110,3 +110,15 @@ export function deleteConfirmText(details: string): string {
     details,
   ].join("\n");
 }
+
+export function duplicateConfirmText(details: string): string {
+  return [
+    "Член семьи уже внёс похожую трату за сегодня.",
+    "Точно добавить такую же?",
+    "",
+    details,
+  ].join("\n");
+}
+
+export const LOGS_CLEARED = "Логи очищены.";
+export const LOGS_EMPTY = "Логов пока нет.";

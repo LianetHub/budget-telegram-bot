@@ -25,6 +25,7 @@ import {
   deleteConfirmKeyboard,
   deleteListKeyboard,
 } from "../keyboards.js";
+import { log } from "../logger.js";
 import { presentMain } from "../presentMain.js";
 import { safeAnswerCbQuery } from "../safeAnswerCbQuery.js";
 import { dismissPending, showScreen } from "../screen.js";
@@ -72,6 +73,7 @@ export function registerDeleteHandlers(bot: Telegraf<Context>) {
   bot.action(CALLBACK.DELETE, async (ctx) => {
     await safeAnswerCbQuery(ctx);
     await dismissPending(ctx, ctx.from?.id);
+    log("delete.list", { telegramId: ctx.from?.id });
     await showDeleteList(ctx);
   });
 
@@ -116,6 +118,11 @@ export function registerDeleteHandlers(bot: Telegraf<Context>) {
     const result = await once(ctx.update.update_id, "delete", () =>
       deleteOwnExpense(id, userId),
     );
+    log("delete.result", {
+      telegramId: userId,
+      expenseId: id,
+      status: result.status,
+    });
     const lead =
       result.status === "deleted"
         ? `🗑 Убрал: ${expenseSummary(result.expense)}`
