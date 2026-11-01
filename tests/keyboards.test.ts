@@ -137,6 +137,23 @@ describe("keyboards", () => {
       CALLBACK.WHEN_BACK,
     ]);
   });
+
+  it("labels expense card actions as edits", () => {
+    const labels = expenseCardKeyboard(
+      "abc",
+      "st:day:2026-11-01",
+    ).reply_markup.inline_keyboard.flatMap((row) =>
+      row.flatMap((button) => ("text" in button ? [button.text] : [])),
+    );
+    expect(labels).toEqual([
+      "💰 Изменить сумму",
+      "🏷️ Изменить категорию",
+      "📝 Изменить заметку",
+      "📅 Изменить дату",
+      "🗑 Удалить",
+      "← Назад",
+    ]);
+  });
 });
 
 describe("retry button", () => {

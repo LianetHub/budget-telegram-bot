@@ -159,6 +159,17 @@ export function formatMonthTitle(
   );
 }
 
+/** Month name without year, e.g. «Октябрь» — for calendar nav buttons. */
+export function formatMonthName(
+  year: number,
+  month: number,
+  timeZone: string,
+): string {
+  const mm = String(month).padStart(2, "0");
+  const anchor = fromZonedTime(`${year}-${mm}-15T12:00:00`, timeZone);
+  return capitalize(formatInTimeZone(anchor, timeZone, "LLLL", { locale: ru }));
+}
+
 export function formatClock(date: Date, timeZone: string): string {
   return formatInTimeZone(date, timeZone, "HH:mm");
 }

@@ -70,7 +70,8 @@ export const CATEGORY_PROMPT = "На что потратили?\nВыбери к
 
 export const WHEN_PROMPT = "Когда была трата?";
 
-export const CALENDAR_PROMPT = "Выбери дату траты.";
+export const CALENDAR_PROMPT =
+  "Выбери день траты.\nКнопки с названием месяца — переключить месяц.";
 
 export const EDIT_AMOUNT_PROMPT = "Новая сумма? Например: 1500";
 

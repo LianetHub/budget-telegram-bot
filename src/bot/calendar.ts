@@ -1,6 +1,7 @@
 import { Markup } from "telegraf";
 import type { InlineKeyboardButton } from "telegraf/types";
 import {
+  formatMonthName,
   formatMonthTitle,
   parseDayKey,
   parseMonthKey,
@@ -8,6 +9,7 @@ import {
   zonedDayKey,
   zonedMonthKey,
 } from "../services/dates.js";
+import { styledCallback } from "./buttonStyle.js";
 
 const WEEKDAY_LABELS = ["пн", "вт", "ср", "чт", "пт", "сб", "вс"] as const;
 
@@ -71,9 +73,10 @@ export function calendarKeyboard(input: {
 
   const rows: InlineKeyboardButton[][] = [];
   rows.push([
-    Markup.button.callback(
-      formatMonthTitle(year, month, input.timeZone),
+    styledCallback(
+      `📅 ${formatMonthTitle(year, month, input.timeZone)}`,
       "cal:noop",
+      "primary",
     ),
   ]);
   rows.push(
@@ -90,6 +93,8 @@ export function calendarKeyboard(input: {
     const key = dayKey(year, month, day);
     if (key < minKey || key > maxKey) {
       cells.push(Markup.button.callback("·", "cal:noop"));
+    } else if (key === maxKey) {
+      cells.push(styledCallback(String(day), `cal:day:${key}`, "success"));
     } else {
       cells.push(Markup.button.callback(String(day), `cal:day:${key}`));
     }
@@ -102,17 +107,27 @@ export function calendarKeyboard(input: {
   }
 
   const nav: InlineKeyboardButton[] = [];
-  nav.push(
-    prevKey >= minMonth
-      ? Markup.button.callback("‹", `cal:nav:${prevKey}`)
-      : Markup.button.callback(" ", "cal:noop"),
-  );
-  nav.push(Markup.button.callback("Сегодня", `cal:day:${maxKey}`));
-  nav.push(
-    nextKey <= maxMonth
-      ? Markup.button.callback("›", `cal:nav:${nextKey}`)
-      : Markup.button.callback(" ", "cal:noop"),
-  );
+  if (prevKey >= minMonth) {
+    nav.push(
+      styledCallback(
+        `‹ ${formatMonthName(prev.year, prev.month, input.timeZone)}`,
+        `cal:nav:${prevKey}`,
+      ),
+    );
+  } else {
+    nav.push(Markup.button.callback("·", "cal:noop"));
+  }
+  nav.push(styledCallback("Сегодня", `cal:day:${maxKey}`, "success"));
+  if (nextKey <= maxMonth) {
+    nav.push(
+      styledCallback(
+        `${formatMonthName(next.year, next.month, input.timeZone)} ›`,
+        `cal:nav:${nextKey}`,
+      ),
+    );
+  } else {
+    nav.push(Markup.button.callback("·", "cal:noop"));
+  }
   rows.push(nav);
   rows.push([Markup.button.callback("← Назад", input.backCallback)]);
 

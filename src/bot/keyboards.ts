@@ -1,6 +1,7 @@
 import { Markup } from "telegraf";
 import type { InlineKeyboardButton } from "telegraf/types";
 import { CATEGORIES } from "../services/categories.js";
+import { styledCallback } from "./buttonStyle.js";
 import { clip } from "./format.js";
 
 export const CALLBACK = {
@@ -166,15 +167,11 @@ export function dayExpensesKeyboard(
 
 export function expenseCardKeyboard(expenseId: string, backCallback: string) {
   return Markup.inlineKeyboard([
-    [
-      Markup.button.callback("Сумма", `ex:amt:${expenseId}`),
-      Markup.button.callback("Категория", `ex:cat:${expenseId}`),
-    ],
-    [
-      Markup.button.callback("Заметка", `ex:note:${expenseId}`),
-      Markup.button.callback("Дата", `ex:date:${expenseId}`),
-    ],
-    [Markup.button.callback("🗑 Удалить", `ex:del:${expenseId}`)],
+    [Markup.button.callback("💰 Изменить сумму", `ex:amt:${expenseId}`)],
+    [Markup.button.callback("🏷️ Изменить категорию", `ex:cat:${expenseId}`)],
+    [Markup.button.callback("📝 Изменить заметку", `ex:note:${expenseId}`)],
+    [Markup.button.callback("📅 Изменить дату", `ex:date:${expenseId}`)],
+    [styledCallback("🗑 Удалить", `ex:del:${expenseId}`, "danger")],
     [Markup.button.callback("← Назад", backCallback)],
   ]);
 }

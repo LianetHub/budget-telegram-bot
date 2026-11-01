@@ -23,6 +23,11 @@ describe("calendarKeyboard", () => {
     expect(data).toContain("cal:day:2026-11-01");
     expect(data).toContain("cal:nav:2026-10");
     expect(data).toContain("when:back");
+    const labels = keyboard.reply_markup.inline_keyboard.flatMap((row) =>
+      row.flatMap((button) => ("text" in button ? [button.text] : [])),
+    );
+    expect(labels.some((label) => label.includes("Октябрь"))).toBe(true);
+    expect(labels.some((label) => label.startsWith("📅"))).toBe(true);
     for (const item of data) {
       expect(Buffer.byteLength(item, "utf8")).toBeLessThanOrEqual(64);
     }
