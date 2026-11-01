@@ -10,6 +10,7 @@ import {
   formatClock,
   formatDayTitle,
   formatMonthTitle,
+  parseDayKey,
   parseMonthKey,
 } from "../../services/dates.js";
 import {
@@ -17,10 +18,12 @@ import {
   getCategoryBreakdown,
   getCurrentMonthParts,
   getCurrentMonthRange,
+  getNamedDayRange,
   getNamedMonthRange,
   getRangeTotals,
   getSpenders,
   getTodayRange,
+  listDaySummaries,
   listExpenses,
   listExpensesByCategory,
   listMonthSummaries,
@@ -33,6 +36,7 @@ import {
   MONTH_BUTTON_LIMIT,
   backKeyboard,
   categoryStatsKeyboard,
+  monthDaysKeyboard,
   monthListKeyboard,
   statsMenuKeyboard,
 } from "../keyboards.js";
@@ -62,13 +66,14 @@ function categoryLines(
   );
 }
 
-async function renderToday(): Promise<string> {
-  const now = new Date();
-  const range = getTodayRange(now);
+async function renderDay(
+  range: { from: Date; to: Date },
+  title: string,
+  emptyMessage: string,
+): Promise<string> {
   const expenses = await listExpenses(range);
-  const title = `Сегодня, ${formatDayTitle(now, config.timezone)}`;
   if (expenses.length === 0) {
-    return `${title}\n\nСегодня трат ещё нет.`;
+    return `${title}\n\n${emptyMessage}`;
   }
 
   const lines = expenses.map((expense) => {
@@ -77,6 +82,15 @@ async function renderToday(): Promise<string> {
   });
   const total = expenses.reduce((sum, expense) => sum + expense.amount, 0);
   return fitLines(title, lines, totalsBlock(total, expenses.length));
+}
+
+async function renderToday(): Promise<string> {
+  const now = new Date();
+  return renderDay(
+    getTodayRange(now),
+    `Сегодня, ${formatDayTitle(now, config.timezone)}`,
+    "Сегодня трат ещё нет.",
+  );
 }
 
 async function renderMonth(year: number, month: number): Promise<string> {
@@ -91,6 +105,37 @@ async function renderMonth(year: number, month: number): Promise<string> {
   return fitLines(
     [title, "", totalsBlock(totals.total, totals.count)].join("\n"),
     ["По категориям:", ...categoryLines(categories, totals.total)],
+  );
+}
+
+async function showMonthScreen(
+  ctx: Context,
+  year: number,
+  month: number,
+  backCallback: string,
+): Promise<void> {
+  const range = getNamedMonthRange(year, month);
+  const days = await listDaySummaries(range);
+  const text =
+    days.length > 0
+      ? `${await renderMonth(year, month)}\n\nНажми дату — траты за день.`
+      : await renderMonth(year, month);
+
+  await showScreen(
+    ctx,
+    text,
+    days.length > 0
+      ? monthDaysKeyboard(
+          days.map((day) => {
+            const anchor = getNamedDayRange(day.year, day.month, day.day).from;
+            return {
+              key: day.key,
+              label: `${formatDayTitle(anchor, config.timezone)} · ${formatAmount(day.total)}`,
+            };
+          }),
+          backCallback,
+        )
+      : backKeyboard(backCallback),
   );
 }
 
@@ -221,11 +266,7 @@ export function registerStatsHandlers(bot: Telegraf<Context>) {
     await dismissPending(ctx, ctx.from?.id);
     const parts = getCurrentMonthParts();
     log("stats.month", { telegramId: ctx.from?.id });
-    await showScreen(
-      ctx,
-      await renderMonth(parts.year, parts.month),
-      backKeyboard(CALLBACK.STATS),
-    );
+    await showMonthScreen(ctx, parts.year, parts.month, CALLBACK.STATS);
   });
 
   bot.action(CALLBACK.ALL, async (ctx) => {
@@ -305,10 +346,26 @@ export function registerStatsHandlers(bot: Telegraf<Context>) {
     const parts = key ? parseMonthKey(key) : null;
     if (!parts) return;
     log("stats.named_month", { telegramId: ctx.from?.id, key });
+    await showMonthScreen(ctx, parts.year, parts.month, CALLBACK.MONTHS);
+  });
+
+  bot.action(/^st:day:(\d{4}-\d{2}-\d{2})$/u, async (ctx) => {
+    await safeAnswerCbQuery(ctx);
+    await dismissPending(ctx, ctx.from?.id);
+    const key = ctx.match[1];
+    const parts = key ? parseDayKey(key) : null;
+    if (!parts) return;
+    log("stats.day_detail", { telegramId: ctx.from?.id, key });
+    const range = getNamedDayRange(parts.year, parts.month, parts.day);
+    const monthKey = `${parts.year}-${String(parts.month).padStart(2, "0")}`;
     await showScreen(
       ctx,
-      await renderMonth(parts.year, parts.month),
-      backKeyboard(CALLBACK.MONTHS),
+      await renderDay(
+        range,
+        formatDayTitle(range.from, config.timezone),
+        EMPTY,
+      ),
+      backKeyboard(`mo:${monthKey}`),
     );
   });
 }

@@ -8,6 +8,7 @@ import {
   deleteConfirmKeyboard,
   dupConfirmKeyboard,
   mainMenuKeyboard,
+  monthDaysKeyboard,
   retryKeyboard,
   statsMenuKeyboard,
 } from "../src/bot/keyboards.js";
@@ -77,6 +78,13 @@ describe("keyboards", () => {
         { slug: "products", label: "🛒 Продукты · 1 500 ₽" },
         { slug: "taxi", label: "🚕 Такси · 400 ₽" },
       ]),
+      monthDaysKeyboard(
+        [
+          { key: "2026-11-01", label: "1 ноября · 1 500 ₽" },
+          { key: "2026-11-15", label: "15 ноября · 400 ₽" },
+        ],
+        CALLBACK.MONTHS,
+      ),
       retryKeyboard(rememberFailedUpdate(textUpdate(1))),
     ];
     const data = keyboards.flatMap((keyboard) => callbackData(keyboard));
@@ -102,6 +110,16 @@ describe("keyboards", () => {
       ]),
     );
     expect(data).toEqual(["st:cat:products", CALLBACK.STATS]);
+  });
+
+  it("opens day details from the month screen", () => {
+    const data = callbackData(
+      monthDaysKeyboard(
+        [{ key: "2026-11-01", label: "1 ноября · 1 500 ₽" }],
+        CALLBACK.MONTHS,
+      ),
+    );
+    expect(data).toEqual(["st:day:2026-11-01", CALLBACK.MONTHS]);
   });
 });
 

@@ -124,3 +124,14 @@ export function categoryStatsKeyboard(
   rows.push([Markup.button.callback("← Назад", CALLBACK.STATS)]);
   return Markup.inlineKeyboard(rows);
 }
+
+export function monthDaysKeyboard(
+  days: { key: string; label: string }[],
+  backCallback: string,
+) {
+  const rows = days.map((day) => [
+    Markup.button.callback(clip(day.label, 60), `st:day:${day.key}`),
+  ]);
+  rows.push([Markup.button.callback("← Назад", backCallback)]);
+  return Markup.inlineKeyboard(rows);
+}

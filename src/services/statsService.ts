@@ -3,9 +3,12 @@ import { prisma } from "../db/prisma.js";
 import {
   currentMonthParts,
   currentMonthRange,
+  dayRange,
   monthRange,
+  parseDayKey,
   parseMonthKey,
   todayRange,
+  zonedDayKey,
   zonedMonthKey,
   type DateRange,
 } from "./dates.js";
@@ -35,6 +38,15 @@ export type MonthSummary = {
   count: number;
 };
 
+export type DaySummary = {
+  key: string;
+  year: number;
+  month: number;
+  day: number;
+  total: number;
+  count: number;
+};
+
 const expenseWithUser = { user: true } as const;
 
 export function getTodayRange(now = new Date()): DateRange {
@@ -47,6 +59,14 @@ export function getCurrentMonthRange(now = new Date()): DateRange {
 
 export function getNamedMonthRange(year: number, month: number): DateRange {
   return monthRange(year, month, config.timezone);
+}
+
+export function getNamedDayRange(
+  year: number,
+  month: number,
+  day: number,
+): DateRange {
+  return dayRange(year, month, day, config.timezone);
 }
 
 export function getCurrentMonthParts(now = new Date()) {
@@ -166,4 +186,32 @@ export async function listMonthSummaries(): Promise<MonthSummary[]> {
   }
 
   return [...buckets.values()].sort((a, b) => (a.key < b.key ? 1 : -1));
+}
+
+export async function listDaySummaries(range: DateRange): Promise<DaySummary[]> {
+  const rows = await prisma.expense.findMany({
+    where: { createdAt: { gte: range.from, lt: range.to } },
+    select: { createdAt: true, amount: true },
+  });
+
+  const buckets = new Map<string, DaySummary>();
+  for (const row of rows) {
+    const key = zonedDayKey(row.createdAt, config.timezone);
+    const parts = parseDayKey(key);
+    if (!parts) continue;
+
+    const bucket = buckets.get(key) ?? {
+      key,
+      year: parts.year,
+      month: parts.month,
+      day: parts.day,
+      total: 0,
+      count: 0,
+    };
+    bucket.total += row.amount;
+    bucket.count += 1;
+    buckets.set(key, bucket);
+  }
+
+  return [...buckets.values()].sort((a, b) => (a.key < b.key ? -1 : 1));
 }

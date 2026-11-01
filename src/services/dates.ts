@@ -19,6 +19,35 @@ function parseYearMonth(value: string): { year: number; month: number } | null {
   return { year, month };
 }
 
+function parseYearMonthDay(
+  value: string,
+): { year: number; month: number; day: number } | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/u.exec(value);
+  if (!match?.[1] || !match[2] || !match[3]) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (
+    year < 2000 ||
+    year > 2100 ||
+    month < 1 ||
+    month > 12 ||
+    day < 1 ||
+    day > 31
+  ) {
+    return null;
+  }
+  const probe = new Date(Date.UTC(year, month - 1, day));
+  if (
+    probe.getUTCFullYear() !== year ||
+    probe.getUTCMonth() !== month - 1 ||
+    probe.getUTCDate() !== day
+  ) {
+    return null;
+  }
+  return { year, month, day };
+}
+
 export function startOfZonedDay(date: Date, timeZone: string): Date {
   return zonedMidnight(
     formatInTimeZone(date, timeZone, "yyyy-MM-dd"),
@@ -43,6 +72,18 @@ export function addZonedDays(date: Date, days: number, timeZone: string): Date {
 
 export function todayRange(timeZone: string, now = new Date()): DateRange {
   const from = startOfZonedDay(now, timeZone);
+  return { from, to: addZonedDays(from, 1, timeZone) };
+}
+
+export function dayRange(
+  year: number,
+  month: number,
+  day: number,
+  timeZone: string,
+): DateRange {
+  const mm = String(month).padStart(2, "0");
+  const dd = String(day).padStart(2, "0");
+  const from = zonedMidnight(`${year}-${mm}-${dd}`, timeZone);
   return { from, to: addZonedDays(from, 1, timeZone) };
 }
 
@@ -84,8 +125,18 @@ export function parseMonthKey(
   return parseYearMonth(key);
 }
 
+export function parseDayKey(
+  key: string,
+): { year: number; month: number; day: number } | null {
+  return parseYearMonthDay(key);
+}
+
 export function zonedMonthKey(date: Date, timeZone: string): string {
   return formatInTimeZone(date, timeZone, "yyyy-MM");
+}
+
+export function zonedDayKey(date: Date, timeZone: string): string {
+  return formatInTimeZone(date, timeZone, "yyyy-MM-dd");
 }
 
 function capitalize(value: string): string {
