@@ -26,8 +26,6 @@ function allTexts(): string[] {
     copy.unknownCategoryPrompt("штука", "100 ₽"),
     copy.deleteConfirmText("детали"),
     copy.duplicateConfirmText("детали"),
-    copy.LOGS_CLEARED,
-    copy.LOGS_EMPTY,
   ];
 }
 

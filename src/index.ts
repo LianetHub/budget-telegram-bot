@@ -7,7 +7,6 @@ import { retryKeyboard } from "./bot/keyboards.js";
 import { rememberFailedUpdate } from "./bot/retry.js";
 import { authMiddleware } from "./bot/middleware/auth.js";
 import { dedupeMiddleware } from "./bot/middleware/dedupe.js";
-import { loggingMiddleware } from "./bot/middleware/logging.js";
 import { isRetryClick, registerRetryHandlers } from "./bot/handlers/retry.js";
 import { registerStartHandlers } from "./bot/handlers/start.js";
 import { registerExpenseHandlers } from "./bot/handlers/expense.js";
@@ -54,7 +53,6 @@ bot.catch(async (error, ctx) => {
   }
 });
 
-bot.use(loggingMiddleware);
 bot.use(dedupeMiddleware);
 bot.use(authMiddleware);
 
@@ -67,7 +65,6 @@ registerExpenseHandlers(bot);
 const BOT_COMMANDS = [
   { command: "start", description: "Начать и показать возможности" },
   { command: "menu", description: "Главное меню" },
-  { command: "clearlogs", description: "Очистить файлы логов" },
 ];
 
 async function syncDescription(language?: string): Promise<void> {

@@ -6,26 +6,41 @@ import {
   clearLogs,
   clipLogText,
   getLogDir,
+  isLoggingEnabled,
   log,
   summarizeUpdate,
 } from "../src/bot/logger.js";
 
 describe("logger", () => {
-  const previous = process.env.BUDGET_LOG_DIR;
+  const previousDir = process.env.BUDGET_LOG_DIR;
+  const previousEnabled = process.env.BUDGET_LOGGING;
   let tempDir: string | undefined;
 
   afterEach(() => {
-    if (previous === undefined) delete process.env.BUDGET_LOG_DIR;
-    else process.env.BUDGET_LOG_DIR = previous;
+    if (previousDir === undefined) delete process.env.BUDGET_LOG_DIR;
+    else process.env.BUDGET_LOG_DIR = previousDir;
+    if (previousEnabled === undefined) delete process.env.BUDGET_LOGGING;
+    else process.env.BUDGET_LOGGING = previousEnabled;
     if (tempDir && fs.existsSync(tempDir)) {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
     tempDir = undefined;
   });
 
-  it("writes json lines and clears them", () => {
+  it("is off by default", () => {
+    delete process.env.BUDGET_LOGGING;
+    expect(isLoggingEnabled()).toBe(false);
+
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "budget-logs-"));
     process.env.BUDGET_LOG_DIR = tempDir;
+    log("test.event", { hello: 1 });
+    expect(fs.existsSync(tempDir) ? fs.readdirSync(tempDir) : []).toEqual([]);
+  });
+
+  it("writes json lines and clears them when enabled", () => {
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "budget-logs-"));
+    process.env.BUDGET_LOG_DIR = tempDir;
+    process.env.BUDGET_LOGGING = "1";
 
     log("test.event", { hello: 1 });
     const files = fs.readdirSync(getLogDir());

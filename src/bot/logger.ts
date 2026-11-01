@@ -3,6 +3,12 @@ import path from "node:path";
 
 const TEXT_CAP = 200;
 
+/** Off unless BUDGET_LOGGING=1|true|yes. */
+export function isLoggingEnabled(): boolean {
+  const raw = process.env.BUDGET_LOGGING?.trim().toLowerCase();
+  return raw === "1" || raw === "true" || raw === "yes";
+}
+
 export function getLogDir(): string {
   const override = process.env.BUDGET_LOG_DIR?.trim();
   if (override) return path.resolve(override);
@@ -27,6 +33,8 @@ export function clipLogText(value: string, max = TEXT_CAP): string {
 }
 
 export function log(event: string, data: Record<string, unknown> = {}): void {
+  if (!isLoggingEnabled()) return;
+
   const entry = {
     ts: new Date().toISOString(),
     event,

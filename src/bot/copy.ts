@@ -119,6 +119,3 @@ export function duplicateConfirmText(details: string): string {
     details,
   ].join("\n");
 }
-
-export const LOGS_CLEARED = "Логи очищены.";
-export const LOGS_EMPTY = "Логов пока нет.";
