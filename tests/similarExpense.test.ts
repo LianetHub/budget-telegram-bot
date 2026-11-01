@@ -14,7 +14,7 @@ describe("matchesSimilarExpenseToday", () => {
           category: "Продукты",
           amount: 150_000,
           telegramId: 2n,
-          createdAt: new Date("2026-04-01T12:00:00.000Z"),
+          spentAt: new Date("2026-04-01T12:00:00.000Z"),
         },
         {
           category: "Продукты",
@@ -33,7 +33,7 @@ describe("matchesSimilarExpenseToday", () => {
           category: "Продукты",
           amount: 150_000,
           telegramId: 1n,
-          createdAt: new Date("2026-04-01T12:00:00.000Z"),
+          spentAt: new Date("2026-04-01T12:00:00.000Z"),
         },
         {
           category: "Продукты",
@@ -52,7 +52,7 @@ describe("matchesSimilarExpenseToday", () => {
           category: "Продукты",
           amount: 100_000,
           telegramId: 2n,
-          createdAt: new Date("2026-04-01T12:00:00.000Z"),
+          spentAt: new Date("2026-04-01T12:00:00.000Z"),
         },
         {
           category: "Продукты",
@@ -69,7 +69,7 @@ describe("matchesSimilarExpenseToday", () => {
           category: "Такси",
           amount: 150_000,
           telegramId: 2n,
-          createdAt: new Date("2026-04-01T12:00:00.000Z"),
+          spentAt: new Date("2026-04-01T12:00:00.000Z"),
         },
         {
           category: "Продукты",

@@ -4,7 +4,7 @@ export type SimilarExpenseProbe = {
   category: string;
   amount: number;
   telegramId: bigint;
-  createdAt: Date;
+  spentAt: Date;
 };
 
 /** Same category + amount in range from another family member (not self). */
@@ -21,7 +21,7 @@ export function matchesSimilarExpenseToday(
     expense.category === input.category &&
     expense.amount === input.amount &&
     expense.telegramId !== BigInt(input.excludeTelegramId) &&
-    expense.createdAt >= input.range.from &&
-    expense.createdAt < input.range.to
+    expense.spentAt >= input.range.from &&
+    expense.spentAt < input.range.to
   );
 }

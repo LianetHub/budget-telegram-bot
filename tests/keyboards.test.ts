@@ -7,10 +7,12 @@ import {
   categoryStatsKeyboard,
   deleteConfirmKeyboard,
   dupConfirmKeyboard,
+  expenseCardKeyboard,
   mainMenuKeyboard,
   monthDaysKeyboard,
   retryKeyboard,
   statsMenuKeyboard,
+  whenKeyboard,
 } from "../src/bot/keyboards.js";
 import {
   RETRY_MAX_ENTRIES,
@@ -53,7 +55,7 @@ describe("keyboards", () => {
     expect(rows[2]).toHaveLength(1);
   });
 
-  it("shows only add-expense while the wallet is empty", () => {
+  it("shows only stats and add while the wallet has expenses", () => {
     const empty = mainMenuKeyboard(false).reply_markup.inline_keyboard;
     expect(empty).toHaveLength(1);
     expect(callbackData(mainMenuKeyboard(false))).toEqual(["nav:add"]);
@@ -61,9 +63,13 @@ describe("keyboards", () => {
     expect(mainScreen(undefined, false)).not.toContain("Статистика");
 
     const full = mainMenuKeyboard(true).reply_markup.inline_keyboard;
-    expect(full).toHaveLength(3);
+    expect(full).toHaveLength(2);
+    expect(callbackData(mainMenuKeyboard(true))).toEqual([
+      "nav:stats",
+      "nav:add",
+    ]);
     expect(mainScreen()).toContain("Статистика");
-    expect(mainScreen()).toContain("Удалить запись");
+    expect(mainScreen()).not.toContain("Удалить запись");
   });
 
   it("keeps callback data within Telegram's 64-byte limit", () => {
@@ -74,6 +80,8 @@ describe("keyboards", () => {
       mainMenuKeyboard(false),
       deleteConfirmKeyboard("c".repeat(25)),
       dupConfirmKeyboard(),
+      whenKeyboard(),
+      expenseCardKeyboard("c".repeat(25), "st:day:2026-11-01"),
       categoryStatsKeyboard([
         { slug: "products", label: "🛒 Продукты · 1 500 ₽" },
         { slug: "taxi", label: "🚕 Такси · 400 ₽" },
@@ -120,6 +128,14 @@ describe("keyboards", () => {
       ),
     );
     expect(data).toEqual(["st:day:2026-11-01", CALLBACK.MONTHS]);
+  });
+
+  it("asks when the expense happened before saving", () => {
+    expect(callbackData(whenKeyboard())).toEqual([
+      CALLBACK.WHEN_TODAY,
+      CALLBACK.WHEN_PICK,
+      CALLBACK.WHEN_BACK,
+    ]);
   });
 });
 

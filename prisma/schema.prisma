@@ -23,9 +23,13 @@ model Expense {
   amount    Int
   category  String
   note      String?
+  /// When the money was spent (stats and day lists use this).
+  spentAt   DateTime
+  /// When the record was created in the bot.
   createdAt DateTime @default(now())
 
+  @@index([spentAt])
   @@index([createdAt])
   @@index([category])
-  @@index([userId, createdAt])
+  @@index([userId, spentAt])
 }

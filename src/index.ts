@@ -11,7 +11,7 @@ import { isRetryClick, registerRetryHandlers } from "./bot/handlers/retry.js";
 import { registerStartHandlers } from "./bot/handlers/start.js";
 import { registerExpenseHandlers } from "./bot/handlers/expense.js";
 import { registerStatsHandlers } from "./bot/handlers/stats.js";
-import { registerDeleteHandlers } from "./bot/handlers/delete.js";
+import { registerExpenseCardHandlers } from "./bot/handlers/expenseCard.js";
 import { log } from "./bot/logger.js";
 import { prisma } from "./db/prisma.js";
 
@@ -59,7 +59,7 @@ bot.use(authMiddleware);
 registerStartHandlers(bot);
 registerRetryHandlers(bot);
 registerStatsHandlers(bot);
-registerDeleteHandlers(bot);
+registerExpenseCardHandlers(bot);
 registerExpenseHandlers(bot);
 
 const BOT_COMMANDS = [

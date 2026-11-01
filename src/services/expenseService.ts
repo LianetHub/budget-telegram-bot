@@ -27,6 +27,7 @@ export async function createExpense(input: {
   category: string;
   amount: number;
   note?: string | null;
+  spentAt: Date;
 }) {
   const user = await upsertUser(input.telegramId, input.name);
 
@@ -36,12 +37,13 @@ export async function createExpense(input: {
       category: input.category,
       amount: input.amount,
       note: cleanNote(input.note),
+      spentAt: input.spentAt,
     },
     include: { user: true },
   });
 }
 
-/** Same category + amount today from another family member. */
+/** Same category + amount on the spent day from another family member. */
 export async function findSimilarExpenseToday(input: {
   category: string;
   amount: number;
@@ -52,10 +54,10 @@ export async function findSimilarExpenseToday(input: {
     where: {
       category: input.category,
       amount: input.amount,
-      createdAt: { gte: input.range.from, lt: input.range.to },
+      spentAt: { gte: input.range.from, lt: input.range.to },
       user: { telegramId: { not: BigInt(input.excludeTelegramId) } },
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: { spentAt: "desc" },
     include: { user: true },
   });
 }
@@ -65,15 +67,6 @@ export async function hasAnyExpenses(): Promise<boolean> {
   return first !== null;
 }
 
-export async function getOwnRecentExpenses(telegramId: number, limit: number) {
-  return prisma.expense.findMany({
-    where: { user: { telegramId: BigInt(telegramId) } },
-    take: limit,
-    orderBy: { createdAt: "desc" },
-    include: { user: true },
-  });
-}
-
 export async function getExpenseById(id: string) {
   return prisma.expense.findUnique({
     where: { id },
@@ -81,7 +74,35 @@ export async function getExpenseById(id: string) {
   });
 }
 
-export async function deleteOwnExpense(id: string, telegramId: number) {
+export async function updateExpense(
+  id: string,
+  data: {
+    amount?: number;
+    category?: string;
+    note?: string | null;
+    spentAt?: Date;
+  },
+) {
+  const existing = await prisma.expense.findUnique({ where: { id } });
+  if (!existing) {
+    return { status: "missing" as const };
+  }
+
+  const expense = await prisma.expense.update({
+    where: { id },
+    data: {
+      ...(data.amount !== undefined ? { amount: data.amount } : {}),
+      ...(data.category !== undefined ? { category: data.category } : {}),
+      ...(data.note !== undefined ? { note: cleanNote(data.note) } : {}),
+      ...(data.spentAt !== undefined ? { spentAt: data.spentAt } : {}),
+    },
+    include: { user: true },
+  });
+  return { status: "updated" as const, expense };
+}
+
+/** Any family member may delete any expense. */
+export async function deleteExpense(id: string) {
   const existing = await prisma.expense.findUnique({
     where: { id },
     include: { user: true },
@@ -91,16 +112,25 @@ export async function deleteOwnExpense(id: string, telegramId: number) {
     return { status: "missing" as const };
   }
 
-  if (existing.user.telegramId !== BigInt(telegramId)) {
-    return { status: "forbidden" as const };
-  }
-
-  const removed = await prisma.expense.deleteMany({
-    where: { id, userId: existing.userId },
-  });
+  const removed = await prisma.expense.deleteMany({ where: { id } });
   if (removed.count === 0) {
     return { status: "missing" as const };
   }
 
   return { status: "deleted" as const, expense: existing };
+}
+
+/** Earliest spent day for the calendar lower bound. */
+export async function getEarliestSpendDate(): Promise<Date | null> {
+  const earliestExpense = await prisma.expense.findFirst({
+    orderBy: { spentAt: "asc" },
+    select: { spentAt: true },
+  });
+  if (earliestExpense) return earliestExpense.spentAt;
+
+  const earliestUser = await prisma.user.findFirst({
+    orderBy: { createdAt: "asc" },
+    select: { createdAt: true },
+  });
+  return earliestUser?.createdAt ?? null;
 }

@@ -75,7 +75,7 @@ export function getCurrentMonthParts(now = new Date()) {
 
 export async function getRangeTotals(range: DateRange): Promise<Totals> {
   const result = await prisma.expense.aggregate({
-    where: { createdAt: { gte: range.from, lt: range.to } },
+    where: { spentAt: { gte: range.from, lt: range.to } },
     _sum: { amount: true },
     _count: { _all: true },
   });
@@ -103,7 +103,7 @@ export async function getCategoryBreakdown(
 ): Promise<CategoryTotal[]> {
   const groups = await prisma.expense.groupBy({
     by: ["category"],
-    where: { createdAt: { gte: range.from, lt: range.to } },
+    where: { spentAt: { gte: range.from, lt: range.to } },
     _sum: { amount: true },
     _count: { _all: true },
     orderBy: { _sum: { amount: "desc" } },
@@ -119,7 +119,7 @@ export async function getCategoryBreakdown(
 export async function getSpenders(range: DateRange): Promise<SpenderTotal[]> {
   const groups = await prisma.expense.groupBy({
     by: ["userId"],
-    where: { createdAt: { gte: range.from, lt: range.to } },
+    where: { spentAt: { gte: range.from, lt: range.to } },
     _sum: { amount: true },
     _count: { _all: true },
   });
@@ -142,8 +142,8 @@ export async function getSpenders(range: DateRange): Promise<SpenderTotal[]> {
 
 export async function listExpenses(range: DateRange) {
   return prisma.expense.findMany({
-    where: { createdAt: { gte: range.from, lt: range.to } },
-    orderBy: { createdAt: "asc" },
+    where: { spentAt: { gte: range.from, lt: range.to } },
+    orderBy: { spentAt: "asc" },
     include: expenseWithUser,
   });
 }
@@ -155,21 +155,21 @@ export async function listExpensesByCategory(
   return prisma.expense.findMany({
     where: {
       category,
-      createdAt: { gte: range.from, lt: range.to },
+      spentAt: { gte: range.from, lt: range.to },
     },
-    orderBy: { createdAt: "asc" },
+    orderBy: { spentAt: "asc" },
     include: expenseWithUser,
   });
 }
 
 export async function listMonthSummaries(): Promise<MonthSummary[]> {
   const rows = await prisma.expense.findMany({
-    select: { createdAt: true, amount: true },
+    select: { spentAt: true, amount: true },
   });
 
   const buckets = new Map<string, MonthSummary>();
   for (const row of rows) {
-    const key = zonedMonthKey(row.createdAt, config.timezone);
+    const key = zonedMonthKey(row.spentAt, config.timezone);
     const parts = parseMonthKey(key);
     if (!parts) continue;
 
@@ -190,13 +190,13 @@ export async function listMonthSummaries(): Promise<MonthSummary[]> {
 
 export async function listDaySummaries(range: DateRange): Promise<DaySummary[]> {
   const rows = await prisma.expense.findMany({
-    where: { createdAt: { gte: range.from, lt: range.to } },
-    select: { createdAt: true, amount: true },
+    where: { spentAt: { gte: range.from, lt: range.to } },
+    select: { spentAt: true, amount: true },
   });
 
   const buckets = new Map<string, DaySummary>();
   for (const row of rows) {
-    const key = zonedDayKey(row.createdAt, config.timezone);
+    const key = zonedDayKey(row.spentAt, config.timezone);
     const parts = parseDayKey(key);
     if (!parts) continue;
 

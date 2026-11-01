@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  combineZonedDayAndClock,
   dayRange,
   monthRange,
   parseDayKey,
+  shiftMonth,
   todayRange,
   zonedDayKey,
 } from "../src/services/dates.js";
@@ -61,6 +63,25 @@ describe("zonedDayKey", () => {
     expect(
       zonedDayKey(new Date("2026-10-07T21:30:00.000Z"), "Europe/Moscow"),
     ).toBe("2026-10-08");
+  });
+});
+
+describe("combineZonedDayAndClock", () => {
+  it("keeps Moscow clock on the chosen calendar day", () => {
+    const spentAt = combineZonedDayAndClock(
+      "2026-10-31",
+      "Europe/Moscow",
+      new Date("2026-11-01T10:15:30.000Z"),
+    );
+    expect(zonedDayKey(spentAt, "Europe/Moscow")).toBe("2026-10-31");
+    expect(spentAt.toISOString()).toBe("2026-10-31T10:15:30.000Z");
+  });
+});
+
+describe("shiftMonth", () => {
+  it("crosses the year boundary", () => {
+    expect(shiftMonth(2026, 1, -1)).toEqual({ year: 2025, month: 12 });
+    expect(shiftMonth(2025, 12, 1)).toEqual({ year: 2026, month: 1 });
   });
 });
 

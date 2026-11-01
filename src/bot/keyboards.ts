@@ -7,19 +7,19 @@ export const CALLBACK = {
   MAIN: "nav:main",
   STATS: "nav:stats",
   ADD: "nav:add",
-  DELETE: "nav:del",
   TODAY: "st:today",
   MONTH: "st:month",
   ALL: "st:all",
   MONTHS: "st:months",
   CATEGORIES: "st:cats",
   PEOPLE: "st:people",
-  DELETE_NO: "dn",
+  WHEN_TODAY: "when:today",
+  WHEN_PICK: "when:pick",
+  WHEN_BACK: "when:back",
   DUP_YES: "cd:y",
   DUP_NO: "cd:n",
 } as const;
 
-export const RECENT_LIMIT = 6;
 export const MONTH_BUTTON_LIMIT = 96;
 
 export function mainMenuKeyboard(hasExpenses: boolean) {
@@ -31,7 +31,6 @@ export function mainMenuKeyboard(hasExpenses: boolean) {
   return Markup.inlineKeyboard([
     [Markup.button.callback("📊 Статистика", CALLBACK.STATS)],
     [add],
-    [Markup.button.callback("🗑 Удалить запись", CALLBACK.DELETE)],
   ]);
 }
 
@@ -57,7 +56,7 @@ export function backKeyboard(callbackData: string) {
   ]);
 }
 
-export function categoryKeyboard() {
+export function categoryKeyboard(backCallback = CALLBACK.MAIN) {
   const rows: InlineKeyboardButton[][] = [];
   for (let index = 0; index < CATEGORIES.length; index += 3) {
     rows.push(
@@ -69,8 +68,34 @@ export function categoryKeyboard() {
       ),
     );
   }
-  rows.push([Markup.button.callback("← Назад", CALLBACK.MAIN)]);
+  rows.push([Markup.button.callback("← Назад", backCallback)]);
   return Markup.inlineKeyboard(rows);
+}
+
+export function editCategoryKeyboard(expenseId: string) {
+  const rows: InlineKeyboardButton[][] = [];
+  for (let index = 0; index < CATEGORIES.length; index += 3) {
+    rows.push(
+      CATEGORIES.slice(index, index + 3).map((category) =>
+        Markup.button.callback(
+          `${category.emoji} ${category.name}`,
+          `ex:catset:${expenseId}:${category.slug}`,
+        ),
+      ),
+    );
+  }
+  rows.push([Markup.button.callback("← Назад", `ex:${expenseId}`)]);
+  return Markup.inlineKeyboard(rows);
+}
+
+export function whenKeyboard() {
+  return Markup.inlineKeyboard([
+    [
+      Markup.button.callback("Сегодня", CALLBACK.WHEN_TODAY),
+      Markup.button.callback("Выбрать дату", CALLBACK.WHEN_PICK),
+    ],
+    [Markup.button.callback("← Назад", CALLBACK.WHEN_BACK)],
+  ]);
 }
 
 export function monthListKeyboard(months: { key: string; label: string }[]) {
@@ -78,14 +103,6 @@ export function monthListKeyboard(months: { key: string; label: string }[]) {
     Markup.button.callback(clip(month.label, 60), `mo:${month.key}`),
   ]);
   rows.push([Markup.button.callback("← Назад", CALLBACK.STATS)]);
-  return Markup.inlineKeyboard(rows);
-}
-
-export function deleteListKeyboard(items: { id: string; label: string }[]) {
-  const rows = items.map((item) => [
-    Markup.button.callback(clip(item.label, 60), `dx:${item.id}`),
-  ]);
-  rows.push([Markup.button.callback("← Назад", CALLBACK.MAIN)]);
   return Markup.inlineKeyboard(rows);
 }
 
@@ -100,8 +117,8 @@ export function retryKeyboard(id: string) {
 export function deleteConfirmKeyboard(id: string) {
   return Markup.inlineKeyboard([
     [
-      Markup.button.callback("Да", `dy:${id}`),
-      Markup.button.callback("Нет", CALLBACK.DELETE_NO),
+      Markup.button.callback("Да", `ex:dy:${id}`),
+      Markup.button.callback("Нет", `ex:dn:${id}`),
     ],
   ]);
 }
@@ -134,4 +151,30 @@ export function monthDaysKeyboard(
   ]);
   rows.push([Markup.button.callback("← Назад", backCallback)]);
   return Markup.inlineKeyboard(rows);
+}
+
+export function dayExpensesKeyboard(
+  expenses: { id: string; label: string }[],
+  backCallback: string,
+) {
+  const rows = expenses.map((expense) => [
+    Markup.button.callback(clip(expense.label, 60), `ex:${expense.id}`),
+  ]);
+  rows.push([Markup.button.callback("← Назад", backCallback)]);
+  return Markup.inlineKeyboard(rows);
+}
+
+export function expenseCardKeyboard(expenseId: string, backCallback: string) {
+  return Markup.inlineKeyboard([
+    [
+      Markup.button.callback("Сумма", `ex:amt:${expenseId}`),
+      Markup.button.callback("Категория", `ex:cat:${expenseId}`),
+    ],
+    [
+      Markup.button.callback("Заметка", `ex:note:${expenseId}`),
+      Markup.button.callback("Дата", `ex:date:${expenseId}`),
+    ],
+    [Markup.button.callback("🗑 Удалить", `ex:del:${expenseId}`)],
+    [Markup.button.callback("← Назад", backCallback)],
+  ]);
 }

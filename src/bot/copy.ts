@@ -10,7 +10,8 @@ export function mainScreen(lead?: string, hasExpenses = true): string {
     ? [
         "📊 Статистика — сколько ушло сегодня, за месяц и по категориям.",
         "➕ Добавить трату — две кнопки, и расход записан.",
-        "🗑 Удалить запись — убрать ошибочную трату.",
+        "",
+        "Изменить или удалить трату можно в статистике: открой день и нажми запись.",
         "",
         `Быстрее всего написать сообщением: ${TEXT_EXAMPLE}`,
       ]
@@ -67,17 +68,18 @@ export function amountHelp(category?: CategoryLabel): string {
 
 export const CATEGORY_PROMPT = "На что потратили?\nВыбери категорию.";
 
-export const DELETE_PROMPT =
-  "Какую запись убрать? Нажми на неё.\nЗдесь только твои последние записи.";
+export const WHEN_PROMPT = "Когда была трата?";
+
+export const CALENDAR_PROMPT = "Выбери дату траты.";
+
+export const EDIT_AMOUNT_PROMPT = "Новая сумма? Например: 1500";
+
+export const EDIT_NOTE_PROMPT =
+  "Новая заметка? Напиши текст или «-», чтобы убрать заметку.";
 
 export const STALE_BUTTON = "Кнопка устарела, открыл меню заново.";
 
 export const EXPENSE_GONE = "Этой записи уже нет.";
-
-export const FOREIGN_EXPENSE =
-  "Эту запись добавил другой человек. Убрать можно только свою.";
-
-export const NO_OWN_EXPENSES = "Твоих записей пока нет. Чужие убрать нельзя.";
 
 export const ERROR_TEXT = "Что-то пошло не так. Попробуй ещё раз.";
 
@@ -113,7 +115,7 @@ export function deleteConfirmText(details: string): string {
 
 export function duplicateConfirmText(details: string): string {
   return [
-    "Член семьи уже внёс похожую трату за сегодня.",
+    "Член семьи уже внёс похожую трату в этот день.",
     "Точно добавить такую же?",
     "",
     details,

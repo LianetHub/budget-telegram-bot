@@ -12,6 +12,7 @@ import {
   formatMonthTitle,
   parseDayKey,
   parseMonthKey,
+  zonedDayKey,
 } from "../../services/dates.js";
 import {
   getAllTimeTotals,
@@ -22,12 +23,11 @@ import {
   getNamedMonthRange,
   getRangeTotals,
   getSpenders,
-  getTodayRange,
   listDaySummaries,
-  listExpenses,
   listExpensesByCategory,
   listMonthSummaries,
 } from "../../services/statsService.js";
+import { showNamedDayScreen, showTodayScreen } from "../dayScreen.js";
 import { clip, fitLines, monthsCount, recordsCount, share } from "../format.js";
 import { log } from "../logger.js";
 import { presentMain } from "../presentMain.js";
@@ -36,6 +36,7 @@ import {
   MONTH_BUTTON_LIMIT,
   backKeyboard,
   categoryStatsKeyboard,
+  dayExpensesKeyboard,
   monthDaysKeyboard,
   monthListKeyboard,
   statsMenuKeyboard,
@@ -63,33 +64,6 @@ function categoryLines(
 ): string[] {
   return categories.map((category) =>
     shareLine(category.category, category, total),
-  );
-}
-
-async function renderDay(
-  range: { from: Date; to: Date },
-  title: string,
-  emptyMessage: string,
-): Promise<string> {
-  const expenses = await listExpenses(range);
-  if (expenses.length === 0) {
-    return `${title}\n\n${emptyMessage}`;
-  }
-
-  const lines = expenses.map((expense) => {
-    const note = expense.note ? ` — ${clip(expense.note, 80)}` : "";
-    return `• ${formatClock(expense.createdAt, config.timezone)} — ${expense.category}: ${formatAmount(expense.amount)}${note} (${expense.user.name})`;
-  });
-  const total = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-  return fitLines(title, lines, totalsBlock(total, expenses.length));
-}
-
-async function renderToday(): Promise<string> {
-  const now = new Date();
-  return renderDay(
-    getTodayRange(now),
-    `Сегодня, ${formatDayTitle(now, config.timezone)}`,
-    "Сегодня трат ещё нет.",
   );
 }
 
@@ -188,9 +162,12 @@ async function renderCategories(): Promise<{
   return { text, buttons };
 }
 
-async function renderCategoryDetail(slug: string): Promise<string | null> {
+async function showCategoryDetail(
+  ctx: Context,
+  slug: string,
+): Promise<boolean> {
   const category = getCategoryBySlug(slug);
-  if (!category) return null;
+  if (!category) return false;
 
   const now = new Date();
   const parts = getCurrentMonthParts(now);
@@ -200,15 +177,35 @@ async function renderCategoryDetail(slug: string): Promise<string | null> {
     category.name,
   );
   if (expenses.length === 0) {
-    return `${title}\n\n${EMPTY}`;
+    await showScreen(ctx, `${title}\n\n${EMPTY}`, backKeyboard(CALLBACK.CATEGORIES));
+    return true;
   }
 
-  const lines = expenses.map((expense) => {
-    const note = expense.note ? ` — ${clip(expense.note, 80)}` : "";
-    return `• ${formatClock(expense.createdAt, config.timezone)} — ${formatAmount(expense.amount)}${note} (${expense.user.name})`;
-  });
   const total = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-  return fitLines(title, lines, totalsBlock(total, expenses.length));
+  const text = [
+    title,
+    "",
+    totalsBlock(total, expenses.length),
+    "",
+    "Нажми трату — изменить или удалить.",
+  ].join("\n");
+
+  await showScreen(
+    ctx,
+    text,
+    dayExpensesKeyboard(
+      expenses.map((expense) => {
+        const day = zonedDayKey(expense.spentAt, config.timezone);
+        const note = expense.note ? ` — ${clip(expense.note, 40)}` : "";
+        return {
+          id: expense.id,
+          label: `${formatClock(expense.spentAt, config.timezone)} · ${formatAmount(expense.amount)}${note} · ${day.slice(8)}`,
+        };
+      }),
+      CALLBACK.CATEGORIES,
+    ),
+  );
+  return true;
 }
 
 async function renderPeople(): Promise<string> {
@@ -258,7 +255,7 @@ export function registerStatsHandlers(bot: Telegraf<Context>) {
     await safeAnswerCbQuery(ctx);
     await dismissPending(ctx, ctx.from?.id);
     log("stats.today", { telegramId: ctx.from?.id });
-    await showScreen(ctx, await renderToday(), backKeyboard(CALLBACK.STATS));
+    await showTodayScreen(ctx, CALLBACK.STATS);
   });
 
   bot.action(CALLBACK.MONTH, async (ctx) => {
@@ -324,12 +321,8 @@ export function registerStatsHandlers(bot: Telegraf<Context>) {
     const slug = ctx.match[1];
     if (!slug) return;
     log("stats.category_detail", { telegramId: ctx.from?.id, slug });
-    const text = await renderCategoryDetail(slug);
-    if (!text) {
-      await showCategoriesScreen(ctx);
-      return;
-    }
-    await showScreen(ctx, text, backKeyboard(CALLBACK.CATEGORIES));
+    const ok = await showCategoryDetail(ctx, slug);
+    if (!ok) await showCategoriesScreen(ctx);
   });
 
   bot.action(CALLBACK.PEOPLE, async (ctx) => {
@@ -356,16 +349,13 @@ export function registerStatsHandlers(bot: Telegraf<Context>) {
     const parts = key ? parseDayKey(key) : null;
     if (!parts) return;
     log("stats.day_detail", { telegramId: ctx.from?.id, key });
-    const range = getNamedDayRange(parts.year, parts.month, parts.day);
     const monthKey = `${parts.year}-${String(parts.month).padStart(2, "0")}`;
-    await showScreen(
+    await showNamedDayScreen(
       ctx,
-      await renderDay(
-        range,
-        formatDayTitle(range.from, config.timezone),
-        EMPTY,
-      ),
-      backKeyboard(`mo:${monthKey}`),
+      parts.year,
+      parts.month,
+      parts.day,
+      `mo:${monthKey}`,
     );
   });
 }

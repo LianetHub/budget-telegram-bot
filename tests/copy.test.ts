@@ -15,11 +15,12 @@ function allTexts(): string[] {
     copy.amountHelp(products),
     copy.amountHelp(),
     copy.CATEGORY_PROMPT,
-    copy.DELETE_PROMPT,
+    copy.WHEN_PROMPT,
+    copy.CALENDAR_PROMPT,
+    copy.EDIT_AMOUNT_PROMPT,
+    copy.EDIT_NOTE_PROMPT,
     copy.STALE_BUTTON,
     copy.EXPENSE_GONE,
-    copy.FOREIGN_EXPENSE,
-    copy.NO_OWN_EXPENSES,
     copy.ERROR_TEXT,
     copy.accessDeniedText(123),
     copy.accessDeniedText(undefined),
@@ -60,5 +61,10 @@ describe("copy", () => {
 
   it("shows the Telegram ID to a stranger", () => {
     expect(copy.accessDeniedText(42)).toContain("42");
+  });
+
+  it("points to day stats for edit and delete", () => {
+    expect(copy.mainScreen()).toContain("статистике");
+    expect(copy.mainScreen()).not.toContain("Удалить запись");
   });
 });

@@ -22,17 +22,20 @@ describe("pending input", () => {
   });
 
   it("keeps a duplicate-confirm draft until cleared", () => {
+    const spentAt = new Date("2026-11-01T12:00:00.000Z");
     setPending(1, {
       kind: "confirmDup",
       category: "Продукты",
       amount: 150_000,
       note: null,
+      spentAt,
     });
     expect(getPending(1)).toEqual({
       kind: "confirmDup",
       category: "Продукты",
       amount: 150_000,
       note: null,
+      spentAt,
     });
     clearPending(1);
     expect(getPending(1)).toBeUndefined();

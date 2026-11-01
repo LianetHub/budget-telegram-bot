@@ -170,3 +170,26 @@ export function formatShortStamp(date: Date, timeZone: string): string {
 export function formatLongStamp(date: Date, timeZone: string): string {
   return formatInTimeZone(date, timeZone, "d MMMM yyyy, HH:mm", { locale: ru });
 }
+
+/** Keep the clock from `now`, but place it on the chosen calendar day. */
+export function combineZonedDayAndClock(
+  dayKey: string,
+  timeZone: string,
+  now = new Date(),
+): Date {
+  const parts = parseYearMonthDay(dayKey);
+  if (!parts) {
+    throw new Error(`Invalid calendar day: ${dayKey}`);
+  }
+  const clock = formatInTimeZone(now, timeZone, "HH:mm:ss.SSS");
+  return fromZonedTime(`${dayKey}T${clock}`, timeZone);
+}
+
+export function shiftMonth(
+  year: number,
+  month: number,
+  delta: number,
+): { year: number; month: number } {
+  const index = year * 12 + (month - 1) + delta;
+  return { year: Math.floor(index / 12), month: (index % 12) + 1 };
+}
