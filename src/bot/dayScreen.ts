@@ -1,10 +1,6 @@
 import type { Context } from "telegraf";
 import { config } from "../config.js";
-import {
-  formatClock,
-  formatDayTitle,
-  zonedDayKey,
-} from "../services/dates.js";
+import { formatClock, formatDayTitle, zonedDayKey } from "../services/dates.js";
 import { formatAmount } from "../services/expenseParser.js";
 import {
   getNamedDayRange,

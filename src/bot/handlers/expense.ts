@@ -50,11 +50,7 @@ import { log } from "../logger.js";
 import { presentMain } from "../presentMain.js";
 import { safeAnswerCbQuery } from "../safeAnswerCbQuery.js";
 import { callbackMessage, dismissPending, showScreen } from "../screen.js";
-import {
-  getPending,
-  setPending,
-  type ExpenseDraft,
-} from "../session.js";
+import { getPending, setPending, type ExpenseDraft } from "../session.js";
 import { once } from "../updateLedger.js";
 import {
   applyExpenseDate,

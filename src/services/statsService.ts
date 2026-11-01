@@ -188,7 +188,9 @@ export async function listMonthSummaries(): Promise<MonthSummary[]> {
   return [...buckets.values()].sort((a, b) => (a.key < b.key ? 1 : -1));
 }
 
-export async function listDaySummaries(range: DateRange): Promise<DaySummary[]> {
+export async function listDaySummaries(
+  range: DateRange,
+): Promise<DaySummary[]> {
   const rows = await prisma.expense.findMany({
     where: { spentAt: { gte: range.from, lt: range.to } },
     select: { spentAt: true, amount: true },

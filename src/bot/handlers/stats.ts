@@ -177,7 +177,11 @@ async function showCategoryDetail(
     category.name,
   );
   if (expenses.length === 0) {
-    await showScreen(ctx, `${title}\n\n${EMPTY}`, backKeyboard(CALLBACK.CATEGORIES));
+    await showScreen(
+      ctx,
+      `${title}\n\n${EMPTY}`,
+      backKeyboard(CALLBACK.CATEGORIES),
+    );
     return true;
   }
 

@@ -1,6 +1,9 @@
 import type { Context, Telegraf } from "telegraf";
 import { config } from "../../config.js";
-import { getCategoryByName, getCategoryBySlug } from "../../services/categories.js";
+import {
+  getCategoryByName,
+  getCategoryBySlug,
+} from "../../services/categories.js";
 import {
   combineZonedDayAndClock,
   formatLongStamp,
@@ -13,11 +16,11 @@ import {
   getExpenseById,
   updateExpense,
 } from "../../services/expenseService.js";
-import { formatAmount, parseAmountInput } from "../../services/expenseParser.js";
 import {
-  calendarKeyboard,
-  initialCalendarMonth,
-} from "../calendar.js";
+  formatAmount,
+  parseAmountInput,
+} from "../../services/expenseParser.js";
+import { calendarKeyboard, initialCalendarMonth } from "../calendar.js";
 import {
   CALENDAR_PROMPT,
   EDIT_AMOUNT_PROMPT,
@@ -231,11 +234,7 @@ export function registerExpenseCardHandlers(bot: Telegraf<Context>) {
       expenseId: id,
       ...(message ?? {}),
     });
-    await showScreen(
-      ctx,
-      EDIT_AMOUNT_PROMPT,
-      backKeyboard(`ex:${id}`),
-    );
+    await showScreen(ctx, EDIT_AMOUNT_PROMPT, backKeyboard(`ex:${id}`));
   });
 
   bot.action(/^ex:note:([a-z0-9]+)$/u, async (ctx) => {
@@ -267,11 +266,7 @@ export function registerExpenseCardHandlers(bot: Telegraf<Context>) {
       await presentMain(ctx, EXPENSE_GONE);
       return;
     }
-    await showScreen(
-      ctx,
-      "Новая категория?",
-      editCategoryKeyboard(id),
-    );
+    await showScreen(ctx, "Новая категория?", editCategoryKeyboard(id));
   });
 
   bot.action(/^ex:catset:([a-z0-9]+):([a-z]+)$/u, async (ctx) => {
